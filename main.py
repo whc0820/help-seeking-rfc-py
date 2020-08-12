@@ -9,18 +9,18 @@ PATH_SRC = '17_to_19_standardization_v3_cluster.csv'
 COLNAMES_X = ['TM', 'TMA', 'AverageTip', 'RST', 'RSI',
               'RSE', 'Time', 'CorrectSteps', 'TriedSteps']
 COLNAME_Y = 'Risk'
-DROP_PROPERTIES = ['macro avg', 'weighted avg']
+OUTPUT_PROPERTIES = ['accuracy', 'precision', 'recall', 'f1-score']
+CLUSTER_3_NAMES = ['Instrumental', 'Executive', 'Independent']
+CLUSTER_5_NAMES = ['Executive', 'Instrumental Independent',
+                   'Instrumental Executive', 'Instrumental', 'Indepnedent']
+OUTPUT_CSV_PATH = 'out4.csv'
+
 N_SPLITS = 5
 
 df_src = pd.read_csv(PATH_SRC)
 df_src['Risk'] = np.where(df_src['Score'] >= 80, 0, 1)
 
 kf = KFold(n_splits=N_SPLITS)
-
-
-def write_json(filename, data):
-    with open(filename, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
 
 
 def get_kf_split_data(n, c):
@@ -86,10 +86,14 @@ def get_rfc_cr(x_train, x_test, y_train, y_test):
     y_pred = rfc.predict(x_test)
     rfc_cr = classification_report(
         y_test, y_pred, zero_division=1, output_dict=True)
-    for p in DROP_PROPERTIES:
-        del rfc_cr[p]
-
     return rfc_cr
+
+
+def appendCrToRow(cr, row, risk):
+    row.append(cr['accuracy'])
+    row.append(cr[f'{risk}']['precision'])
+    row.append(cr[f'{risk}']['recall'])
+    row.append(cr[f'{risk}']['f1-score'])
 
 
 # k = 3
@@ -97,13 +101,18 @@ n3_c1 = get_kf_split_data(3, 1)
 n3_c2 = get_kf_split_data(3, 2)
 n3_c3 = get_kf_split_data(3, 3)
 
+n3_cs = []
 n3_c1_crs = []
 n3_c2_crs = []
 n3_c3_crs = []
 
+n3_g_cs = []
 n3_c1_g_crs = []
 n3_c2_g_crs = []
 n3_c3_g_crs = []
+
+n3_crs_means = []
+n3_g_crs_means = []
 
 
 # k = 5
@@ -113,46 +122,191 @@ n5_c3 = get_kf_split_data(5, 3)
 n5_c4 = get_kf_split_data(5, 4)
 n5_c5 = get_kf_split_data(5, 5)
 
+n5_cs = []
 n5_c1_crs = []
 n5_c2_crs = []
 n5_c3_crs = []
 n5_c4_crs = []
 n5_c5_crs = []
 
+n5_g_cs = []
 n5_c1_g_crs = []
 n5_c2_g_crs = []
 n5_c3_g_crs = []
 n5_c4_g_crs = []
 n5_c5_g_crs = []
 
+n5_crs_means = []
+n5_g_crs_means = []
+
 for i in range(0, N_SPLITS):
     # k = 3, general, train data
-    # n3_g_x_train = np.concatenate(
-    #     (n3_c1[i]['x_train'], n3_c2[i]['x_train'], n3_c3[i]['x_train']))
-    # n3_g_y_train = np.concatenate(
-    #     (n3_c1[i]['y_train'], n3_c2[i]['y_train'], n3_c3[i]['y_train']))
+    n3_g_x_train = np.concatenate(
+        (n3_c1[i]['x_train'], n3_c2[i]['x_train'], n3_c3[i]['x_train']))
+    n3_g_y_train = np.concatenate(
+        (n3_c1[i]['y_train'], n3_c2[i]['y_train'], n3_c3[i]['y_train']))
 
     # k = 3, cluster1
     n3_c1_cr = get_rfc_cr(
         n3_c1[i]['x_train'], n3_c1[i]['x_test'], n3_c1[i]['y_train'], n3_c1[i]['y_test'])
     n3_c1_crs.append(n3_c1_cr)
-    print(n3_c1_cr, '\n')
-    # print(f'{pd.DataFrame(n3_c1_cr).transpose()}\n')
 
-    # # k = 3, cluster2
-    # n3_c2_cr = get_rfc_cr(
-    #     n3_c2[i]['x_train'], n3_c2[i]['x_test'], n3_c2[i]['y_train'], n3_c2[i]['y_test'])
-    # n3_c2_crs.append(n3_c2_cr)
+    n3_c1_g_cr = get_rfc_cr(
+        n3_g_x_train, n3_c1[i]['x_test'], n3_g_y_train, n3_c1[i]['y_test'])
+    n3_c1_g_crs.append(n3_c1_g_cr)
 
-    # # k = 3, cluster3
-    # n3_c3_cr = get_rfc_cr(
-    #     n3_c3[i]['x_train'], n3_c3[i]['x_test'], n3_c3[i]['y_train'], n3_c3[i]['y_test'])
-    # n3_c3_crs.append(n3_c3_cr)
+    # k = 3, cluster2
+    n3_c2_cr = get_rfc_cr(
+        n3_c2[i]['x_train'], n3_c2[i]['x_test'], n3_c2[i]['y_train'], n3_c2[i]['y_test'])
+    n3_c2_crs.append(n3_c2_cr)
 
-    # n3_c3_g_cr = get_rfc_cr(
-    #     n3_g_x_train, n3_c3[i]['x_test'], n3_g_y_train, n3_c3[i]['y_test'])
-    # n3_c3_g_crs.append(n3_c3_g_cr)
+    n3_c2_g_cr = get_rfc_cr(
+        n3_g_x_train, n3_c2[i]['x_test'], n3_g_y_train, n3_c2[i]['y_test'])
+    n3_c2_g_crs.append(n3_c2_g_cr)
 
+    # k = 3, cluster3
+    n3_c3_cr = get_rfc_cr(
+        n3_c3[i]['x_train'], n3_c3[i]['x_test'], n3_c3[i]['y_train'], n3_c3[i]['y_test'])
+    n3_c3_crs.append(n3_c3_cr)
+
+    n3_c3_g_cr = get_rfc_cr(
+        n3_g_x_train, n3_c3[i]['x_test'], n3_g_y_train, n3_c3[i]['y_test'])
+    n3_c3_g_crs.append(n3_c3_g_cr)
+
+    # k = 5, general, train data
+    n5_g_x_train = np.concatenate(
+        (n5_c1[i]['x_train'], n5_c2[i]['x_train'], n5_c3[i]['x_train'], n5_c4[i]['x_train'], n5_c5[i]['x_train']))
+    n5_g_y_train = np.concatenate(
+        (n5_c1[i]['y_train'], n5_c2[i]['y_train'], n5_c3[i]['y_train'], n5_c4[i]['y_train'], n5_c5[i]['y_train']))
+
+    # k = 5, cluster1
+    n5_c1_cr = get_rfc_cr(
+        n5_c1[i]['x_train'], n5_c1[i]['x_test'], n5_c1[i]['y_train'], n5_c1[i]['y_test'])
+    n5_c1_crs.append(n5_c1_cr)
+
+    n5_c1_g_cr = get_rfc_cr(
+        n5_g_x_train, n5_c1[i]['x_test'], n5_g_y_train, n5_c1[i]['y_test'])
+    n5_c1_g_crs.append(n5_c1_g_cr)
+
+    # k = 5, cluster2
+    n5_c2_cr = get_rfc_cr(
+        n5_c2[i]['x_train'], n5_c2[i]['x_test'], n5_c2[i]['y_train'], n5_c2[i]['y_test'])
+    n5_c2_crs.append(n5_c2_cr)
+
+    n5_c2_g_cr = get_rfc_cr(
+        n5_g_x_train, n5_c2[i]['x_test'], n5_g_y_train, n5_c2[i]['y_test'])
+    n5_c2_g_crs.append(n5_c2_g_cr)
+
+    # k = 5, cluster3
+    n5_c3_cr = get_rfc_cr(
+        n5_c3[i]['x_train'], n5_c3[i]['x_test'], n5_c3[i]['y_train'], n5_c3[i]['y_test'])
+    n5_c3_crs.append(n5_c3_cr)
+
+    n5_c3_g_cr = get_rfc_cr(
+        n5_g_x_train, n5_c3[i]['x_test'], n5_g_y_train, n5_c3[i]['y_test'])
+    n5_c3_g_crs.append(n5_c3_g_cr)
+
+    # k = 5, cluster4
+    n5_c4_cr = get_rfc_cr(
+        n5_c4[i]['x_train'], n5_c4[i]['x_test'], n5_c4[i]['y_train'], n5_c4[i]['y_test'])
+    n5_c4_crs.append(n5_c4_cr)
+
+    n5_c4_g_cr = get_rfc_cr(
+        n5_g_x_train, n5_c4[i]['x_test'], n5_g_y_train, n5_c4[i]['y_test'])
+    n5_c4_g_crs.append(n5_c4_g_cr)
+
+    # k = 5, cluster5
+    n5_c5_cr = get_rfc_cr(
+        n5_c5[i]['x_train'], n5_c5[i]['x_test'], n5_c5[i]['y_train'], n5_c5[i]['y_test'])
+    n5_c5_crs.append(n5_c5_cr)
+
+    n5_c5_g_cr = get_rfc_cr(
+        n5_g_x_train, n5_c5[i]['x_test'], n5_g_y_train, n5_c5[i]['y_test'])
+    n5_c5_g_crs.append(n5_c5_g_cr)
+
+
+n3_cs.extend([n3_c1_crs, n3_c2_crs, n3_c3_crs])
+n3_g_cs.extend([n3_c1_g_crs, n3_c2_g_crs, n3_c3_g_crs])
 
 n3_c1_crs_mean = merge_crs(n3_c1_crs)
-print(pd.DataFrame(n3_c1_crs_mean).transpose())
+n3_c2_crs_mean = merge_crs(n3_c2_crs)
+n3_c3_crs_mean = merge_crs(n3_c3_crs)
+n3_crs_means.extend([n3_c1_crs_mean, n3_c2_crs_mean, n3_c3_crs_mean])
+
+n3_c1_g_crs_mean = merge_crs(n3_c1_g_crs)
+n3_c2_g_crs_mean = merge_crs(n3_c2_g_crs)
+n3_c3_g_crs_mean = merge_crs(n3_c3_g_crs)
+n3_g_crs_means.extend([n3_c1_g_crs_mean, n3_c2_g_crs_mean, n3_c3_g_crs_mean])
+
+n5_cs.extend([n5_c1_crs, n5_c2_crs, n5_c3_crs, n5_c4_crs, n5_c5_crs])
+n5_g_cs.extend([n5_c1_g_crs, n5_c2_g_crs,
+                n5_c3_g_crs, n5_c4_g_crs, n5_c5_g_crs])
+
+n5_c1_crs_mean = merge_crs(n5_c1_crs)
+n5_c2_crs_mean = merge_crs(n5_c2_crs)
+n5_c3_crs_mean = merge_crs(n5_c3_crs)
+n5_c4_crs_mean = merge_crs(n5_c4_crs)
+n5_c5_crs_mean = merge_crs(n5_c5_crs)
+n5_crs_means.extend([n5_c1_crs_mean, n5_c2_crs_mean,
+                     n5_c3_crs_mean, n5_c4_crs_mean, n5_c5_crs_mean])
+
+n5_c1_g_crs_mean = merge_crs(n5_c1_g_crs)
+n5_c2_g_crs_mean = merge_crs(n5_c2_g_crs)
+n5_c3_g_crs_mean = merge_crs(n5_c3_g_crs)
+n5_c4_g_crs_mean = merge_crs(n5_c4_g_crs)
+n5_c5_g_crs_mean = merge_crs(n5_c5_g_crs)
+n5_g_crs_means.extend([n5_c1_g_crs_mean, n5_c2_g_crs_mean,
+                       n5_c3_g_crs_mean, n5_c4_g_crs_mean, n5_c5_g_crs_mean])
+
+out_rows = []
+for i in range(0, len(n3_cs)):
+    risk_0_row = [3, CLUSTER_3_NAMES[i], f'cluster{i + 1}', 0]
+    risk_1_row = [3, CLUSTER_3_NAMES[i], f'cluster{i + 1}', 1]
+    risk_0_g_row = [3, CLUSTER_3_NAMES[i], f'cluster{i + 1}-general', 0]
+    risk_1_g_row = [3, CLUSTER_3_NAMES[i], f'cluster{i + 1}-general', 1]
+
+    for n3_c_cr in n3_cs[i]:
+        appendCrToRow(n3_c_cr, risk_0_row, 0)
+        appendCrToRow(n3_c_cr, risk_1_row, 1)
+
+    for n3_g_c_cr in n3_g_cs[i]:
+        appendCrToRow(n3_g_c_cr, risk_0_g_row, 0)
+        appendCrToRow(n3_g_c_cr, risk_1_g_row, 1)
+
+    appendCrToRow(n3_crs_means[i], risk_0_row, 0)
+    appendCrToRow(n3_crs_means[i], risk_1_row, 1)
+    appendCrToRow(n3_g_crs_means[i], risk_0_g_row, 0)
+    appendCrToRow(n3_g_crs_means[i], risk_1_g_row, 1)
+
+    out_rows.extend([risk_0_row, risk_1_row, risk_0_g_row, risk_1_g_row])
+
+for i in range(0, len(n5_cs)):
+    risk_0_row = [5, CLUSTER_5_NAMES[i], f'cluster{i + 1}', 0]
+    risk_1_row = [5, CLUSTER_5_NAMES[i], f'cluster{i + 1}', 1]
+    risk_0_g_row = [5, CLUSTER_5_NAMES[i], f'cluster{i + 1}-general', 0]
+    risk_1_g_row = [5, CLUSTER_5_NAMES[i], f'cluster{i + 1}-general', 1]
+
+    for n5_c_cr in n5_cs[i]:
+        appendCrToRow(n5_c_cr, risk_0_row, 0)
+        appendCrToRow(n5_c_cr, risk_1_row, 1)
+
+    for n5_g_c_cr in n5_g_cs[i]:
+        appendCrToRow(n5_g_c_cr, risk_0_g_row, 0)
+        appendCrToRow(n5_g_c_cr, risk_1_g_row, 1)
+
+    appendCrToRow(n5_crs_means[i], risk_0_row, 0)
+    appendCrToRow(n5_crs_means[i], risk_1_row, 1)
+    appendCrToRow(n5_g_crs_means[i], risk_0_g_row, 0)
+    appendCrToRow(n5_g_crs_means[i], risk_1_g_row, 1)
+
+    out_rows.extend([risk_0_row, risk_1_row, risk_0_g_row, risk_1_g_row])    
+
+out_colnames = ['k-means-n', 'name', 'model', 'risk']
+for i in range(0, N_SPLITS):
+    for p in OUTPUT_PROPERTIES:
+        out_colnames.append(f'k-fold-{i + 1}-{p}')
+for p in OUTPUT_PROPERTIES:
+    out_colnames.append(f'mean-{p}')
+
+out_df = pd.DataFrame(np.array(out_rows), columns=out_colnames)
+out_df.to_csv(OUTPUT_CSV_PATH, index=False)
