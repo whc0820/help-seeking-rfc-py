@@ -9,11 +9,11 @@ PATH_SRC = '17_to_19_standardization_v3_cluster.csv'
 COLNAMES_X = ['TM', 'TMA', 'AverageTip', 'RST', 'RSI',
               'RSE', 'Time', 'CorrectSteps', 'TriedSteps']
 COLNAME_Y = 'Risk'
-OUTPUT_PROPERTIES = ['accuracy', 'precision', 'recall', 'f1-score']
+OUTPUT_PROPERTIES = ['accuracy', 'precision', 'recall', 'f1-score', 'support']
 CLUSTER_3_NAMES = ['Instrumental', 'Executive', 'Independent']
 CLUSTER_5_NAMES = ['Executive', 'Instrumental Independent',
                    'Instrumental Executive', 'Instrumental', 'Indepnedent']
-OUTPUT_CSV_PATH = 'out4.csv'
+OUTPUT_CSV_PATH = 'out.csv'
 
 N_SPLITS = 5
 
@@ -94,6 +94,7 @@ def appendCrToRow(cr, row, risk):
     row.append(cr[f'{risk}']['precision'])
     row.append(cr[f'{risk}']['recall'])
     row.append(cr[f'{risk}']['f1-score'])
+    row.append(cr[f'{risk}']['support'])
 
 
 # k = 3
