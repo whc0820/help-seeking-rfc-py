@@ -35,6 +35,42 @@ def get_kf_split_data(n, c):
         y_train = cluster_y[train_index]
         y_test = cluster_y[test_index]
 
+        # Balance sample, risk 0 1
+        df_train = pd.DataFrame(np.array(x_train), columns=COLNAMES_X)
+        df_train[COLNAME_Y] = y_train
+        df_train_risk_0 = df_train[df_train[COLNAME_Y] == 0]
+        df_train_risk_1 = df_train[df_train[COLNAME_Y] == 1]
+        df_train_reshape = pd.DataFrame()
+
+        df_test = pd.DataFrame(np.array(x_test), columns=COLNAMES_X)
+        df_test[COLNAME_Y] = y_test
+        df_test_risk_0 = df_test[df_test[COLNAME_Y] == 0]
+        df_test_risk_1 = df_test[df_test[COLNAME_Y] == 1]
+        df_test_reshape = pd.DataFrame()
+
+        count_train_risk_0, count_train_risk_1 = df_train[COLNAME_Y].value_counts(
+        )
+        if count_train_risk_0 > count_train_risk_1:
+            df_train_reshape = pd.concat(
+                [df_train_risk_0, df_train_risk_1.sample(count_train_risk_0, replace=True)])
+        else:
+            df_train_reshape = pd.concat(
+                [df_train_risk_1, df_train_risk_0.sample(count_train_risk_1, replace=True)])
+
+        count_test_risk_0, count_test_risk_1 = df_test[COLNAME_Y].value_counts(
+        )
+        if count_test_risk_0 > count_test_risk_1:
+            df_test_reshape = pd.concat(
+                [df_test_risk_0, df_test_risk_1.sample(count_test_risk_0, replace=True)])
+        else:
+            df_train_reshape = pd.concat(
+                [df_train_risk_1, df_train_risk_0.sample(count_test_risk_1, replace=True)])
+
+        x_train = df_train_reshape.loc[:, COLNAMES_X].to_numpy()
+        y_train = df_train_reshape[COLNAME_Y]
+        x_test = df_test_reshape.loc[:, COLNAMES_X].to_numpy()
+        y_test = df_test_reshape[COLNAME_Y]
+
         kf_cluster.append({
             'x_train': x_train,
             'x_test': x_test,
@@ -300,7 +336,7 @@ for i in range(0, len(n5_cs)):
     appendCrToRow(n5_g_crs_means[i], risk_0_g_row, 0)
     appendCrToRow(n5_g_crs_means[i], risk_1_g_row, 1)
 
-    out_rows.extend([risk_0_row, risk_1_row, risk_0_g_row, risk_1_g_row])    
+    out_rows.extend([risk_0_row, risk_1_row, risk_0_g_row, risk_1_g_row])
 
 out_colnames = ['k-means-n', 'name', 'model', 'risk']
 for i in range(0, N_SPLITS):
